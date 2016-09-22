@@ -206,6 +206,11 @@ public class LiKafkaConsumerIntegrationTest extends AbstractKafkaClientsIntegrat
       TopicPartition tp = new TopicPartition(topic, 0);
       consumer.assign(Collections.singleton(tp));
 
+      consumer.seek(tp, 100L);
+      consumer.commitSync();
+      assertEquals(consumer.committed(tp).offset(), 100L, "The committed offset should be 100");
+
+      consumer.seek(tp, 0L);
       while (consumer.poll(10).isEmpty()) {
         // M2
       }

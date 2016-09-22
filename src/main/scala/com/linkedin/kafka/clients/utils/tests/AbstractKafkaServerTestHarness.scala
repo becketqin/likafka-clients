@@ -19,7 +19,6 @@ import kafka.server.{KafkaConfig, KafkaServer}
 import kafka.utils.CoreUtils
 import org.apache.kafka.common.protocol.SecurityProtocol
 import org.apache.kafka.common.security.auth.KafkaPrincipal
-import org.junit.{After, Before}
 
 import scala.collection.mutable
 
@@ -58,7 +57,6 @@ abstract class AbstractKafkaServerTestHarness extends AbstractZookeeperTestHarne
 
   protected def saslProperties: Option[Properties] = None
 
-  @Before
   override def setUp() {
     super.setUp()
     if (configs.size <= 0)
@@ -80,7 +78,6 @@ abstract class AbstractKafkaServerTestHarness extends AbstractZookeeperTestHarne
     setClusterAcl.foreach(_.apply())
   }
 
-  @After
   override def tearDown() {
     if (servers != null) {
       servers.foreach(_.shutdown())

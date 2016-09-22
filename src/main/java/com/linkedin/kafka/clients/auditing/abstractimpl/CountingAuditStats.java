@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * A class that aggregate the statistics for auditing by simply counting the number of events of different auditing
+ * A class that aggregate the statistics for auditing by simply counting the number of records of different auditing
  * types for each topic.
  *
  * This class is thread safe.
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CountingAuditStats implements AuditStats {
 
   private final long _bucketMs;
-  private final Map<Object, AuditInfo> _stats;
+  private final Map<Object, AuditingCounts> _stats;
 
   // The variables for synchronization on ticks.
   private final AtomicInteger _recordingInProgress;
@@ -41,7 +41,7 @@ public class CountingAuditStats implements AuditStats {
     return _bucketMs;
   }
 
-  public Map<Object, AuditInfo> stats() {
+  public Map<Object, AuditingCounts> stats() {
     return _stats;
   }
 
@@ -53,10 +53,10 @@ public class CountingAuditStats implements AuditStats {
         throw new IllegalStateException("Stats has been closed. The caller should get the new AuditStats and retry.");
       }
 
-      AuditInfo statsForTopic = _stats.get(auditKey);
+      AuditingCounts statsForTopic = _stats.get(auditKey);
       if (statsForTopic == null) {
-        statsForTopic = new AuditInfo();
-        AuditInfo prev = _stats.putIfAbsent(auditKey, statsForTopic);
+        statsForTopic = new AuditingCounts();
+        AuditingCounts prev = _stats.putIfAbsent(auditKey, statsForTopic);
         if (prev != null) {
           statsForTopic = prev;
         }
@@ -77,7 +77,7 @@ public class CountingAuditStats implements AuditStats {
   /**
    * A container class that hosts the messages count and bytes count for each audit key.
    */
-  public static final class AuditInfo {
+  public static final class AuditingCounts {
     private final AtomicLong _messageCount = new AtomicLong(0);
     private final AtomicLong _bytesCount = new AtomicLong(0);
 

@@ -246,7 +246,7 @@ public class LiKafkaConsumerImpl<K, V> implements LiKafkaConsumer<K, V> {
 
   @Override
   public void commitSync() {
-    commitSync(toOffsetAndMetadataMap(_consumerRecordsProcessor.delivered()));
+    commitSync(getCurrentOffsetsAndMetadata());
   }
 
   @Override
@@ -258,12 +258,12 @@ public class LiKafkaConsumerImpl<K, V> implements LiKafkaConsumer<K, V> {
 
   @Override
   public void commitAsync() {
-    commitAsync(toOffsetAndMetadataMap(_consumerRecordsProcessor.delivered()), null);
+    commitAsync(getCurrentOffsetsAndMetadata(), null);
   }
 
   @Override
   public void commitAsync(OffsetCommitCallback callback) {
-    commitAsync(toOffsetAndMetadataMap(_consumerRecordsProcessor.delivered()), callback);
+    commitAsync(getCurrentOffsetsAndMetadata(), callback);
   }
 
   @Override
@@ -448,6 +448,28 @@ public class LiKafkaConsumerImpl<K, V> implements LiKafkaConsumer<K, V> {
           String userMetadata = entry.getValue().metadata();
           String wrappedMetadata = LiKafkaClientsUtils.wrapMetadataWithOffset(userMetadata, committedUserOffset);
           offsetsToCommit.put(entry.getKey(), new OffsetAndMetadata(safeOffset, wrappedMetadata));
+        }
+      }
+    }
+    return offsetsToCommit;
+  }
+
+  /**
+   * The helper function to get current offsets to commit for all the partitions.
+   *
+   * @return the current offsets for all the partitions.
+   */
+  private Map<TopicPartition, OffsetAndMetadata> getCurrentOffsetsAndMetadata() {
+    Map<TopicPartition, OffsetAndMetadata> offsetsToCommit =
+        toOffsetAndMetadataMap(_consumerRecordsProcessor.delivered());
+    Set<TopicPartition> assignment = assignment();
+    if (offsetsToCommit.size() != assignment.size()) {
+      for (TopicPartition tp : assignment) {
+        if (!offsetsToCommit.containsKey(tp)) {
+          Long consumerHW = _consumerRecordsProcessor.consumerHighWaterMarkForPartition(tp);
+          if (consumerHW != null) {
+            offsetsToCommit.put(tp, new OffsetAndMetadata(consumerHW));
+          }
         }
       }
     }

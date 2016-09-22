@@ -41,10 +41,10 @@ public class AbstractAuditorTest {
 
     assertEquals(auditor.nextTick(), 60000, "The cutting over time should be 60000");
 
-    auditor.record(TOPIC, "key", "value", 0L, 1L, 10L, AuditType.SUCCESS);
-    auditor.record(TOPIC, "key", "value", 30000L, 1L, 10L, AuditType.SUCCESS);
-    auditor.record(TOPIC, "key", "value", auditor.nextTick(), 1L, 10L, AuditType.SUCCESS);
-    auditor.record(TOPIC, "key", "value", auditor.nextTick(), 1L, 10L, AuditType.SUCCESS);
+    auditor.record(auditor.getCustomAuditInfo("key", "value"), TOPIC, 0, 0L, 1L, 10L, AuditType.SUCCESS);
+    auditor.record(auditor.getCustomAuditInfo("key", "value"), TOPIC, 0, 30000L, 1L, 10L, AuditType.SUCCESS);
+    auditor.record(auditor.getCustomAuditInfo("key", "value"), TOPIC, 0, auditor.nextTick(), 1L, 10L, AuditType.SUCCESS);
+    auditor.record(auditor.getCustomAuditInfo("key", "value"), TOPIC, 0, auditor.nextTick(), 1L, 10L, AuditType.SUCCESS);
 
     assertEquals(auditor.currentStats().stats().get(new AuditKey(TOPIC, 0L, AuditType.SUCCESS)).messageCount(), 1,
         "There should be one message in the current stats");
@@ -145,12 +145,12 @@ public class AbstractAuditorTest {
         && System.currentTimeMillis() < startMs + 30000) {
       stats = auditor.tickAndGetStats();
       // Add the stats
-      for (Map.Entry<Object, CountingAuditStats.AuditInfo> entry : stats.stats().entrySet()) {
+      for (Map.Entry<Object, CountingAuditStats.AuditingCounts> entry : stats.stats().entrySet()) {
         AuditKey auditKey = (AuditKey) entry.getKey();
-        CountingAuditStats.AuditInfo auditInfo = entry.getValue();
+        CountingAuditStats.AuditingCounts auditingCounts = entry.getValue();
         counters.putIfAbsent(auditKey, new AtomicLong(0));
-        counters.get(auditKey).addAndGet(auditInfo.messageCount());
-        totalCount += auditInfo.messageCount();
+        counters.get(auditKey).addAndGet(auditingCounts.messageCount());
+        totalCount += auditingCounts.messageCount();
       }
     }
     auditor.close();
@@ -198,7 +198,7 @@ public class AbstractAuditorTest {
       for (int typeIndex = 0; typeIndex < _auditTypes.length; typeIndex++) {
         for (int topicIndex = 0; topicIndex < _topics.length; topicIndex++) {
           for (long timestamp = 0; timestamp < _numTimestamps; timestamp++) {
-            _auditor.record(_topics[topicIndex], "key", "value", timestamp, 1L, 2L, _auditTypes[typeIndex]);
+            _auditor.record(_auditor.getCustomAuditInfo("key", "value"), _topics[topicIndex], 0, timestamp, 1L, 2L, _auditTypes[typeIndex]);
           }
         }
       }
@@ -257,9 +257,14 @@ public class AbstractAuditorTest {
     }
 
     @Override
-    protected Object getAuditKey(String topic,
-                                 String key,
-                                 String value,
+    public Object getCustomAuditInfo(String key, String value) {
+      return null;
+    }
+
+    @Override
+    protected Object getAuditKey(Object auditInfo,
+                                 String topic,
+                                 Integer partition,
                                  Long timestamp,
                                  Long messageCount,
                                  Long sizeInBytes,
